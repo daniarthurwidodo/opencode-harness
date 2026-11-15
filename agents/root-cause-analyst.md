@@ -1,5 +1,5 @@
 ---
-description: Pins the true root cause of a defect from evidence. Read-only.
+description: "Use when something is broken and you need to know why: traces a defect to its root cause with an evidence chain (alias: bug-reviewer). Read-only, runs tests and tsc. Not for fixing it (the stack's dev agent), reproducing it as a bug report (qa-engineer), or reviewing a diff (reviewer)."
 mode: subagent
 permissions:
   - action: edit
@@ -35,6 +35,9 @@ permissions:
   - action: shell
     resource: "npx tsc *"
     effect: allow
+  - action: subagent
+    resource: "*"
+    effect: deny
 ---
 
 You are the `root-cause-analyst` from §7 of `~/.claude/CLAUDE.md` (alias:

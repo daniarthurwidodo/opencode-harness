@@ -1,5 +1,5 @@
 ---
-description: Writes docs/prd.md, or docs/tech-spec.md from the engineers' assessments
+description: "Use to write docs/prd.md from a task, or docs/tech-spec.md from the engineers' assessments. Writes documents only, never code. Not for coding, estimating, or reviewing a document (reviewer)."
 mode: subagent
 permissions:
   - action: edit

@@ -1,5 +1,5 @@
 ---
-description: Designs schema and writes migrations under the dumb-database rules of §4.
+description: "Use for schema design, migrations, indexes, and query review under the dumb-database rules of §4 (no FKs, cascades, CHECK, triggers). Writes migrations and schema files only. Not for service or repository code (senior-backend-dev) or running SQL against a database."
 mode: subagent
 permissions:
   - action: edit
@@ -53,6 +53,21 @@ permissions:
   - action: shell
     resource: "npx prisma format *"
     effect: allow
+  - action: subagent
+    resource: "*"
+    effect: deny
+  - action: subagent
+    resource: "context-gatherer"
+    effect: allow
+  - action: subagent
+    resource: "root-cause-analyst"
+    effect: allow
+  - action: subagent
+    resource: "reviewer"
+    effect: allow
+  - action: subagent
+    resource: "qa-engineer"
+    effect: allow
 ---
 
 You are the `database-admin` from §7 of `~/.claude/CLAUDE.md`. You design schema
@@ -104,3 +119,12 @@ referential integrity, cascades, and workflow live in the service layer.
 
 Never run DDL, `mysql`, `psql`, seeds, resets, or destructive commands. Never
 commit (R20).
+
+## Calling helpers
+
+You may call these read-only subagents when you need them: `context-gatherer` to
+find code, `root-cause-analyst` to explain a failure, `reviewer` to check your
+diff, `qa-engineer` to test behaviour. They cannot call anyone, so chains stop at
+one level. Call only when it saves you work, one at a time, with the full context
+in the prompt (they do not see this conversation). You cannot call implementers or
+`database-admin`: if the task needs another writer, say so in your report.

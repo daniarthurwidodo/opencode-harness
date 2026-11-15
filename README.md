@@ -51,8 +51,8 @@ This installs:
 
 - `opencode.json`: MCP servers, server plugins, and permissions.
 - `cli.json`: terminal-UI plugins, loaded by the TUI process only.
-- `agents/`: one primary agent (`orchestrator`) and eight subagents.
-- `commands/`: `/pipeline <task>` and `/browser <task>`.
+- `agents/`: one primary agent (`orchestrator`) and thirteen subagents, including `react-native-dev`, `game-dev`, `blender-dev`, `qa-engineer` and `sdet`.
+- `commands/`: `/pipeline <task>`, `/browser <task>`, and `/rn`, `/game`, `/blender`, `/qa`, `/sdet <task>`, which hand a task to the matching subagent.
 - `AGENTS.md`: OpenCode-specific memory rules.
 - `rules.md`: the global engineering rules previously loaded from Claude.
 

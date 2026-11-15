@@ -14,8 +14,9 @@ log, `~/.config/opencode/*`). If the config changes, re-check with the commands 
 | Global config | `~/.config/opencode/opencode.json` |
 | Engineering rules | `~/.claude/CLAUDE.md` → symlink to `~/Documents/projects/agent-rules/rules.md` (same bytes as `rules.md` in this folder) |
 | Memory rules | `~/.config/opencode/AGENTS.md` |
-| Custom agents | `~/.config/opencode/agents/*.md` — primary `orchestrator`; subagents `context-gatherer`, `product-manager`, `reviewer`, `senior-engineer`, `root-cause-analyst`, `ui-ux-reviewer`, `senior-backend-dev`, `database-admin` |
+| Custom agents | `~/.config/opencode/agents/*.md` — primary `orchestrator`; subagents `context-gatherer`, `product-manager`, `reviewer`, `senior-engineer`, `root-cause-analyst`, `ui-ux-reviewer`, `senior-backend-dev`, `database-admin`, `react-native-dev`, `game-dev`, `blender-dev`, `qa-engineer`, `sdet` |
 | Pipeline command | `~/.config/opencode/commands/pipeline.md` → `/pipeline <task>` |
+| Delegation commands | `commands/rn.md`, `game.md`, `blender.md`, `qa.md`, `sdet.md` → `/rn`, `/game`, `/blender`, `/qa`, `/sdet <task>`; run on `build`, which hands the task to the named subagent |
 | Browser command | `~/.config/opencode/commands/browser.md` → `/browser <task>` (Playwright CLI; multi-step work uses the MCP) |
 | Enforcement plugin | `~/.config/opencode/plugins/harness/index.ts` (local, loaded by absolute path) |
 | Server plugins | `@dietrichgebert/ponytail@latest`, `@mumme-it/opencode-caveman@1` |
@@ -129,6 +130,11 @@ flowchart TB
     UX["ui-ux-reviewer<br/>read-only, no shell"]
     BE["senior-backend-dev<br/>src/tests only"]
     DBA["database-admin<br/>migrations only"]
+    RN["react-native-dev<br/>src/app/tests, no native dirs"]
+    GD["game-dev<br/>Assets/Scripts, Tests + unity MCP"]
+    BL["blender-dev<br/>*.py + manifest, blender -b"]
+    QA["qa-engineer<br/>read-only, runs npm test"]
+    SDET["sdet<br/>tests + test config only"]
     EXPL["explore · general<br/>built-in"]
   end
   HID["hidden system agents:<br/>compaction · summary · title"]
@@ -138,6 +144,11 @@ flowchart TB
   BUILD -.-> UX
   BUILD -.-> BE
   BUILD -.-> DBA
+  BUILD -.-> RN
+  BUILD -.-> GD
+  BUILD -.-> BL
+  BUILD -.-> QA
+  BUILD -.-> SDET
   BUILD -.-> EXPL
   ORCH -->|"allow-list"| CG
   ORCH -->|"allow-list"| PM
@@ -154,11 +165,16 @@ flowchart TB
   UX --> A11Y["a11y and state findings"]
   BE --> API["src/, tests/<br/>npm test"]
   DBA --> MIG["migrations/, db/<br/>prisma validate"]
+  RN --> RNOUT["src/, app/, tests<br/>npm test, jest"]
+  GD --> GDOUT["Assets/Scripts, Assets/Tests<br/>unity MCP"]
+  BL --> BLOUT["*.py, manifest<br/>blender -b, pytest"]
+  QA --> QAOUT["PASS/FAIL/BLOCKED<br/>case table, bug reports"]
+  SDET --> TESTS["test files + config<br/>jest, vitest"]
 ```
 
 The orchestrator's allow-list is the load-bearing part: `subagent * deny`, then four
-explicit allows. It cannot reach `explore`, `general`, the hidden agents, or the four
-§7 registry agents. `build` has no such limit, so casual sessions can still delegate
+explicit allows. It cannot reach `explore`, `general`, the hidden agents, the four
+§7 registry agents, or the five added after them. `build` has no such limit, so casual sessions can still delegate
 freely — and that is the route to the registry agents.
 
 To let the pipeline use one of them, add a matching
@@ -178,6 +194,11 @@ To let the pipeline use one of them, add a matching
 | `ui-ux-reviewer` | deny | none | — | Review UI: a11y, states, layers |
 | `senior-backend-dev` | `src/`, `tests/`, `test/`, `e2e/`, `package.json`, `tsconfig.json` | git status/diff/log, `npm run/test/ci`, `npx tsc`, `node` | — | Implement one backend area |
 | `database-admin` | migrations, `db/`, `schema/`, `*.sql` | git status/diff/log, `npx prisma validate/format` | — | Schema and migrations |
+| `react-native-dev` | `src/`, `app/`, `__tests__/`, `tests/`, `e2e/`, `package.json`, `tsconfig.json`; `ios/` and `android/` denied | git status/diff/log, `rg`/`ls`, `npm run/test/ci`, `npx tsc`, `npx jest` | — | Implement one React Native / Expo area |
+| `game-dev` | `Assets/Scripts/`, `Assets/Tests/`; scenes and prefabs via `unity` MCP only | git status/diff/log, `rg`/`ls` | — | Implement one Unity gameplay area |
+| `blender-dev` | `*.py`, `blender_manifest.toml`; `.blend` files not editable | git status/diff/log, `rg`/`ls`, `blender -b`/`--background`, `pytest` | — | Implement one Blender Python (bpy) area |
+| `qa-engineer` | deny | git status/diff/log, `rg`/`ls`, `npm test`; `playwright` MCP | — | Test behaviour against acceptance criteria, report bugs |
+| `sdet` | `tests/`, `test/`, `__tests__/`, `e2e/`, `*.test.*`, `*.spec.*`, jest/vitest/playwright config, `package.json`; production code denied | git status/diff/log, `rg`/`ls`, `npm run/test/ci`, `npx tsc/jest/vitest` | — | Write automated tests and test plumbing |
 
 The last four are the §7 registry roles, added to match the constitution:
 
@@ -188,8 +209,34 @@ The last four are the §7 registry roles, added to match the constitution:
 | `senior-backend-dev` | `senior-backend-dev` | `src/`, tests, package files | One area, test fails first |
 | `database-admin` | `database-admin` | migrations, `db/`, `schema/` | §4 dumb database, reversible |
 
+`react-native-dev`, `game-dev`, `blender-dev`, `qa-engineer` and `sdet` go beyond the §7 registry.
+They follow the same contract (Sections 0–6, narrow write scope, report what ran and
+what could not) and are standalone, like the registry agents.
+
 `senior-engineer` stays as the pipeline's stack assessor and implementer; the
-registry agents are narrower and are not part of the `/pipeline` sequence by default.
+other agents are narrower and are not part of the `/pipeline` sequence by default.
+
+**Calling them.** Every subagent `description` is written as "Use to… / Not for…
+(other-agent)" because that text is what `build` reads when choosing whom to
+delegate to. For a direct route, `/rn`, `/game`, `/blender`, `/qa` and `/sdet <task>` run on
+`build` with an instruction to hand the task to the named subagent with full
+context, since a subagent does not see the parent conversation.
+
+### Subagent calls
+
+Seven implementers may call subagents; everyone else may not.
+
+| Caller | May call | Cannot call |
+| --- | --- | --- |
+| `senior-engineer`, `senior-backend-dev`, `react-native-dev`, `game-dev`, `blender-dev`, `sdet`, `database-admin` | `context-gatherer`, `root-cause-analyst`, `reviewer`, `qa-engineer` | any implementer, `product-manager`, `ui-ux-reviewer`, built-ins |
+| `context-gatherer`, `root-cause-analyst`, `reviewer`, `qa-engineer` | nothing (`subagent * deny`) | everything |
+
+Callers carry `subagent * deny` followed by four allows. The four helpers carry
+`subagent * deny` alone, so a chain is at most one level deep and cannot loop. Two
+writers never run under one another, so file conflicts cannot start this way. The
+caller must pass the full context in the prompt; a helper does not see the parent
+conversation. `product-manager` and `ui-ux-reviewer` have no rule and keep the
+default; they are not in the allow-lists.
 
 Agent permission rules are appended after the global ones; the later, more specific
 rule decides. That is why `shell * deny` plus `shell git status* allow` yields "git
@@ -256,8 +303,10 @@ Phase table:
 
 Three parallel `senior-engineer` calls are bounded fan-out (R17a) and only safe
 because the stacks are file-disjoint; the orchestrator falls back to sequential when
-they touch the same files. No subagent talks to another: the orchestrator is the
-only channel, and the files are the only shared state.
+they touch the same files. Pipeline steps do not call each other: the orchestrator
+is the only channel between them, and the files are the only shared state. Inside
+its own step an engineer may call a read-only helper (see
+[Subagent calls](#subagent-calls)).
 
 ## 5. Where each rule is actually enforced
 
@@ -275,7 +324,9 @@ permissions or the plugin.
 | R25 test proves the change | reviewer checklist + senior-engineer prompt | soft |
 | R14 reuse first | context-gatherer prompt | soft |
 | §4 dumb database | `product-manager` prompt for `tech-spec`, reviewer | soft |
-| Read-only roles | `edit * deny` on 3 of 4 subagents | **hard** |
+| Read-only roles | `edit * deny` on `context-gatherer`, `reviewer`, `root-cause-analyst`, `ui-ux-reviewer`, `qa-engineer` | **hard** |
+| `sdet` cannot change production code | edit allow-list limited to test files and config | **hard** |
+| `game-dev` scene/prefab/delete limits | prompt only; MCP tools are not covered by permissions | soft |
 | Orchestrator can't code | `edit * deny` + `shell * deny` | **hard** |
 | Bounded fan-out | orchestrator prompt | soft |
 
@@ -385,6 +436,7 @@ alone.
 | --- | --- |
 | Run the full pipeline | `/pipeline <task>` |
 | Run a browser capture | `/browser screenshot <url>` (Playwright CLI) |
+| Delegate to a specialist | `/rn`, `/game`, `/blender`, `/qa`, `/sdet <task>` |
 | Unlock implementation | `/approve` (needs `docs/tech-spec.md`) |
 | Change reply compression | `/caveman lite`, `/caveman full`, `/caveman ultra`, `/caveman off` |
 | Add a plugin | `opencode plugin add <package>` (server → `opencode.json`, TUI → `cli.json`) |

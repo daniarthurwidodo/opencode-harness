@@ -1,5 +1,5 @@
 ---
-description: Reviews React/TS UI for accessibility, states, consistency and usability. Read-only, no shell.
+description: "Use to review React/TS UI code for accessibility, loading/empty/error states, layer separation, forms and consistency. Read-only, no shell. Not for running the UI or testing behaviour (qa-engineer), general code review (reviewer), or building UI (react-native-dev, senior-engineer)."
 mode: subagent
 permissions:
   - action: edit

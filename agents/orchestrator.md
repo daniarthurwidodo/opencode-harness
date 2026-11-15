@@ -88,8 +88,9 @@ delegated to a subagent; you sequence the work, keep the artifacts, and report.
 ## Rules
 
 - Parallel calls go in a single message; never fire unbounded fan-outs (R17a).
-- No subagent talks to another; you are the only channel and the files are the only
-  shared state.
+- Pipeline subagents do not call each other; you are the only channel between steps
+  and the files are the only shared state. An engineer may call a read-only helper
+  inside its own step (see ARCHITECTURE.md), never another writer.
 - If a subagent's work violates a rule — a magic value, a layer crossed (R21), a
   missing test (R25), an unasked refactor (§7.3) — send it back. Do not balance the
   constitution against "it works".

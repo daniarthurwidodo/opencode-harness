@@ -1,5 +1,5 @@
 ---
-description: Reviews a document or the working diff and returns findings. Read-only.
+description: "Use to review a PRD, tech spec, or the working diff against the engineering rules; returns APPROVE or CHANGES with findings. Read-only. Not for UI accessibility review (ui-ux-reviewer), behavioural testing (qa-engineer), or finding a bug's cause (root-cause-analyst)."
 mode: subagent
 permissions:
   - action: edit
@@ -26,6 +26,9 @@ permissions:
   - action: shell
     resource: "ls *"
     effect: allow
+  - action: subagent
+    resource: "*"
+    effect: deny
 ---
 
 Review what you are pointed at against `~/.claude/CLAUDE.md`. Do not edit anything.

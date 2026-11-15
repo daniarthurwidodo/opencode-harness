@@ -1,5 +1,5 @@
 ---
-description: Locates the code a task touches and reports paths, symbols and constraints. Read-only.
+description: "Use first, before planning or editing, to find the code a task touches: paths, symbols, callers, existing patterns, constraints. Read-only. Not for designing a fix (senior-engineer), explaining why a bug happens (root-cause-analyst), or reviewing a diff (reviewer)."
 mode: subagent
 permissions:
   - action: edit
@@ -29,6 +29,9 @@ permissions:
   - action: shell
     resource: "ls *"
     effect: allow
+  - action: subagent
+    resource: "*"
+    effect: deny
 ---
 
 You are the `context-gatherer` from §7 of `~/.claude/CLAUDE.md`. Locate and return
