@@ -1,0 +1,74 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "opencode-go/glm-5.3",
+  "agents": {
+    "plan": {
+      "model": "opencode-go/deepseek-v4.1-flash#high"
+    },
+    "build": {
+      "model": "opencode-go/deepseek-v4.1-flash#high"
+    }
+  },
+  "instructions": [
+    "~/.config/opencode/rules.md"
+  ],
+  "mcp": {
+    "servers": {
+      "cavemem": {
+        "type": "local",
+        "command": [
+          "node",
+          "{env:HOME}/.local/lib/node_modules/cavemem/dist/index.js",
+          "mcp"
+        ]
+      },
+      "unity": {
+        "type": "local",
+        "command": [
+          "node",
+          "{env:HOME}/.local/share/mcp-unity/Server~/build/index.js"
+        ],
+        "environment": {
+          "MCP_UNITY_SETTINGS_PATH": "{env:MCP_UNITY_SETTINGS_PATH}"
+        }
+      },
+      "playwright": {
+        "type": "local",
+        "command": [
+          "npx",
+          "-y",
+          "@playwright/mcp@0.0.84"
+        ]
+      },
+      "graph": {
+        "type": "local",
+        "command": [
+          "npx",
+          "-y",
+          "@modelcontextprotocol/server-memory@2.1.0"
+        ],
+        "environment": {
+          "MEMORY_FILE_PATH": "{env:HOME}/.local/share/opencode/knowledge-graph.jsonl"
+        }
+      }
+    }
+  },
+  "permissions": [
+    { "action": "shell", "resource": "npx -y playwright *", "effect": "allow" },
+    { "action": "external_directory", "resource": "*", "effect": "ask" },
+    { "action": "shell", "resource": "*", "effect": "ask" },
+    { "action": "shell", "resource": "git status *", "effect": "allow" },
+    { "action": "shell", "resource": "git diff *", "effect": "allow" },
+    { "action": "shell", "resource": "git log *", "effect": "allow" },
+    { "action": "shell", "resource": "git show *", "effect": "allow" },
+    { "action": "shell", "resource": "rg *", "effect": "allow" },
+    { "action": "shell", "resource": "ls *", "effect": "allow" },
+    { "action": "shell", "resource": "pwd *", "effect": "allow" },
+    { "action": "shell", "resource": "sudo *", "effect": "deny" },
+    { "action": "shell", "resource": "git push *", "effect": "deny" }
+  ],
+  "plugins": [
+    "@dietrichgebert/ponytail@5.3.3",
+    "@mumme-it/opencode-caveman@1"
+  ]
+}
